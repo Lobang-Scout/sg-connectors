@@ -1,76 +1,88 @@
-# sg-company-lookup
+# sg-connectors
 
 By **Lobang Scout** — practical, evidence-backed connectors for Singapore SMEs.
 
-A free, no-auth **MCP connector** that lets Claude look up Singapore companies by
-**UEN** or **name**, over ACRA's open data on [data.gov.sg](https://data.gov.sg).
+Free, no-auth **MCP connectors** that let Claude reach the Singapore data surfaces an
+SME actually uses. Closing the gap our evaluation kept hitting: most of those
+surfaces have **no connector**.
 
-This is the first entry in `sg-connectors` — closing the gap our evaluation kept
-hitting: the surfaces that define a Singapore SME's day mostly have **no connector**.
-Company/UEN lookup is the most reusable starting point.
+| Connector | Server | Source | Auth |
+|---|---|---|---|
+| **Company / UEN lookup** | `sg-company-lookup` | ACRA open data (data.gov.sg) | None |
+| **Address / postal code** | `sg-onemap` | OneMap (SLA) | None (optional free token) |
 
 ## Tools
 
+**`sg-company-lookup`**
 | Tool | What it does | Network |
 |---|---|---|
 | `validate_uen` | Check a UEN's format against the 3 official patterns | No (offline) |
 | `lookup_company` | Exact lookup by UEN | Yes |
-| `search_companies` | Free-text search by name (partial match) | Yes |
+| `search_companies` | Free-text search by name | Yes |
+
+**`sg-onemap`**
+| Tool | What it does |
+|---|---|
+| `lookup_postal_code` | Resolve a 6-digit SG postal code to address + coordinates |
+| `search_address` | Free-text address / building / road search |
 
 ## Honest scope
 
-This connector is built on the **free** ACRA open dataset
-(`Entities Registered with ACRA`, data.gov.sg). Be clear about what that means:
+These are built on **free** government open data. Be clear about the limits:
 
-**It returns:** UEN, entity name, entity type, registration status, UEN issue date,
-street name, postal code, issuance agency.
+**Company / UEN (ACRA open dataset):**
+- Returns: UEN, entity name, type, registration status, UEN issue date, street name,
+  postal code, issuance agency.
+- **Monthly snapshot — not real-time.** A struck-off entity may still show `Registered`.
+- **No** officers, directors, shareholders, financials, paid-up capital, SSIC activity,
+  or full address. Those need the paid ACRA Business Profile API (Corppass + EIQ) or a
+  **~S$5.50** Bizfile profile.
+- `validate_uen` confirms *format only* — ACRA's check-letter algorithm is undisclosed.
 
-**It does NOT return** — and no free source does:
-- **Real-time status.** The dataset is a **monthly snapshot**. An entity struck off
-  yesterday may still show `Registered`. Treat status as *as-of-last-refresh*.
-- **Officers, directors, shareholders, financials, paid-up capital, SSIC activity,
-  or full registered address.** These live behind the **paid** ACRA Business Profile
-  API (Corppass + EIQ subscription) or a **~S$5.50** Bizfile profile purchase.
-- **Definitive UEN validation.** ACRA's check-letter algorithm is undisclosed, so
-  `validate_uen` confirms *format only*; existence is confirmed by a dataset hit.
+**Address (OneMap):**
+- Singapore addresses only. Returns block, road, building, full address, postal code,
+  WGS84 lat/long, and SVY21 x/y.
+- The Search API is free; OneMap may require a free token in future (set `ONEMAP_TOKEN`).
 
-For anything statutory or real-time, verify on
-[Bizfile](https://www.bizfile.gov.sg). This connector is for fast, free first-pass
-lookup and enrichment — not the system of record.
+For anything statutory or real-time, verify at the source
+([Bizfile](https://www.bizfile.gov.sg), [OneMap](https://www.onemap.gov.sg)). These
+connectors are for fast, free first-pass lookup — not the system of record.
 
-## Install (local clone)
+## Install
 
-```bash
-python3.12 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-```
+### Into Claude via `uvx` (no clone needed)
 
-Run the server (stdio):
-```bash
-.venv/bin/python server.py
-```
-
-### Wire it into Claude (`.mcp.json`)
+Add to your `.mcp.json` (or your plugin's). Runs straight from this repo:
 
 ```json
 {
   "mcpServers": {
     "sg-company-lookup": {
-      "command": "/absolute/path/to/sg-connectors/.venv/bin/python",
-      "args": ["/absolute/path/to/sg-connectors/server.py"]
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/Lobang-Scout/sg-connectors", "sg-company-lookup"],
+      "env": { "DATAGOV_API_KEY": "${DATAGOV_API_KEY}" }
+    },
+    "sg-onemap": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/Lobang-Scout/sg-connectors", "sg-onemap"]
     }
   }
 }
 ```
 
-### Optional: raise the rate limit
+### Local clone (development)
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/pip install -e ".[dev]"
+.venv/bin/sg-company-lookup    # or: .venv/bin/sg-onemap
+```
+
+### Optional: raise the rate limit (company lookup)
 
 Without a key, data.gov.sg allows **4 requests / 10s**. A free API key lifts this to
-20/10s. Set it before launching Claude:
-```bash
-export DATAGOV_API_KEY=...
-```
-Request a key at [guide.data.gov.sg](https://guide.data.gov.sg).
+20/10s. `export DATAGOV_API_KEY=...` before launching Claude. Request a key at
+[guide.data.gov.sg](https://guide.data.gov.sg).
 
 ## UEN formats (what `validate_uen` checks)
 
@@ -83,14 +95,16 @@ Request a key at [guide.data.gov.sg](https://guide.data.gov.sg).
 ## Tests
 
 ```bash
-.venv/bin/pip install -r requirements-dev.txt
 .venv/bin/python -m pytest -q
 ```
 
 Network is mocked in tests — no live calls in CI.
 
-## Data source & licence
+## Data sources & licence
 
-Data: ACRA via [data.gov.sg](https://data.gov.sg), under the
-[Singapore Open Data Licence](https://data.gov.sg/open-data-licence). This connector
-is an independent tool and is not affiliated with or endorsed by ACRA or GovTech.
+- Company data: ACRA via [data.gov.sg](https://data.gov.sg), under the
+  [Singapore Open Data Licence](https://data.gov.sg/open-data-licence).
+- Address data: [OneMap](https://www.onemap.gov.sg) (Singapore Land Authority).
+
+This connector is an independent tool, not affiliated with or endorsed by ACRA,
+SLA, or GovTech. Code under MIT (see `LICENSE`).

@@ -1,10 +1,17 @@
 {
   "mcpServers": {
     "sg-company-lookup": {
-      "command": ".venv/bin/python",
-      "args": ["server.py"],
+      "command": ".venv/bin/sg-company-lookup",
+      "args": [],
       "env": {
         "DATAGOV_API_KEY": "${DATAGOV_API_KEY}"
+      }
+    },
+    "sg-onemap": {
+      "command": ".venv/bin/sg-onemap",
+      "args": [],
+      "env": {
+        "ONEMAP_TOKEN": "${ONEMAP_TOKEN}"
       }
     }
   }

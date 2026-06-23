@@ -15,8 +15,8 @@ from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
 
-from acra import AcraError, lookup_by_uen, search_by_name
-from uen import validate_uen as _validate_uen
+from .acra import AcraError, lookup_by_uen, search_by_name
+from .uen import validate_uen as _validate_uen
 
 mcp = FastMCP("sg-company-lookup")
 

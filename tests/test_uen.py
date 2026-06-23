@@ -1,6 +1,6 @@
 """UEN format validation tests."""
 
-from uen import validate_uen
+from sg_connectors.uen import validate_uen
 
 
 def test_business_format_a():

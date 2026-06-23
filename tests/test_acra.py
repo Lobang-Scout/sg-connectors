@@ -5,7 +5,7 @@ import json
 import httpx
 import pytest
 
-import acra
+from sg_connectors import acra
 
 _SAMPLE_RECORD = {
     "uen": "201912345K",
