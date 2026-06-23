@@ -1,0 +1,29 @@
+title: sg-company-lookup (sg-connectors)
+slug: sg-connectors
+one_liner: Free, no-auth MCP connector for Singapore company/UEN lookup over ACRA open data.
+audience: Singapore SMEs and the tools that serve them
+status: active
+visibility: public
+ai_role: >
+  Built as an MCP connector so an LLM agent (Claude) can resolve Singapore UENs and
+  company names against ACRA open data during back-office workflows, with honest
+  scope guardrails on what the free dataset can and cannot return.
+tech_category: mcp-connector
+capabilities:
+  - UEN format validation against the 3 official issuance patterns (offline)
+  - Exact company lookup by UEN via data.gov.sg CKAN datastore_search
+  - Free-text company search by name
+  - Rate-limit-aware, optional free API key support
+lessons:
+  - The only free, queryable SG company source is the monthly ACRA open dataset; real-time and officer/financial data are paywalled.
+  - Honest scope must be enforced in code and tests, not just docs — a guard test asserts paywalled fields are never returned.
+  - ACRA's UEN check-letter algorithm is undisclosed, so format validation cannot confirm existence; a dataset hit does.
+workflow_stages:
+  - Research data-source feasibility (free vs paywalled, fields, rate limits)
+  - Build UEN validator + CKAN client + FastMCP server
+  - Mock-network tests + live smoke test against data.gov.sg
+  - Document honest scope and plugin integration
+outcomes:
+  - Working stdio MCP server, 16 passing tests, live-verified against real ACRA data.
+  - First connector closing the "no connector for SG SME surfaces" gap from the eval.
+last_updated: 2026-06-23

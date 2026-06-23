@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "sg-company-lookup": {
+      "command": ".venv/bin/python",
+      "args": ["server.py"],
+      "env": {
+        "DATAGOV_API_KEY": "${DATAGOV_API_KEY}"
+      }
+    }
+  }
+}
