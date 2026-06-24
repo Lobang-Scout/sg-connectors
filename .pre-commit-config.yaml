@@ -1,0 +1,116 @@
+# Pre-commit hook configuration for Python projects
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # ── Standard hygiene ──────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=500"]
+      - id: no-commit-to-branch
+        args: ["--branch", "main"]
+
+  # ── Secret detection ──────────────────────────────────────────────────────
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ["--baseline", ".secrets.baseline"]
+
+  # ── Python linting + formatting (ruff) ────────────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+
+  # ── Python security (bandit) ──────────────────────────────────────────────
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.8
+    hooks:
+      - id: bandit
+        args: ["-ll", "--exclude", "tests"]
+
+  # ── Type checking (mypy) ────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        args: ["--ignore-missing-imports", "--no-strict-optional"]
+        additional_dependencies: []
+        # Add stubs here as needed, e.g.:
+        # additional_dependencies: [types-requests, pandas-stubs]
+
+  # ── Dead code detection (vulture) ───────────────────────────────────────
+  - repo: local
+    hooks:
+      - id: vulture
+        name: vulture dead code check
+        entry: |
+          bash -c 'output=$(vulture "$@" --min-confidence 80 2>/dev/null | grep -v "unused import" | head -20); if [ -n "$output" ]; then echo "$output"; echo ""; echo "WARN: Potential dead code found. Review before committing."; exit 1; fi' --
+        language: system
+        types: [python]
+        pass_filenames: true
+
+  # ── Complexity gate (radon) ───────────────────────────────────────────────
+  - repo: local
+    hooks:
+      - id: radon-complexity
+        name: radon complexity check
+        entry: |
+          bash -c 'output=$(radon cc "$@" -n D -s 2>/dev/null); if [ -n "$output" ]; then echo "$output"; echo "FAIL: Functions with complexity grade D or worse found. Simplify before committing."; exit 1; fi' --
+        language: system
+        types: [python]
+        pass_filenames: true
+
+  # ── Module size gate (encourages modular decomposition) ──────────────────
+  - repo: local
+    hooks:
+      - id: module-size
+        name: module size check (<=700 non-blank lines)
+        entry: |
+          bash -c 'max=700; fail=0; for f in "$@"; do n=$(grep -cve "^[[:space:]]*$" "$f" 2>/dev/null); if [ "${n:-0}" -gt "$max" ]; then echo "$f: $n non-blank lines (>$max) — split into smaller modules/classes."; fail=1; fi; done; exit $fail' --
+        language: system
+        types: [python]
+        exclude: '(^|/)(tests?|migrations)/'
+        pass_filenames: true
+
+  # ── (Optional) Module boundary contracts — import-linter ─────────────────
+  # Enforces architecture layering. Opt-in: define contracts in .importlinter
+  # or setup.cfg first, then uncomment. Without contracts it is a no-op.
+  # - repo: local
+  #   hooks:
+  #     - id: import-linter
+  #       name: import-linter contracts
+  #       entry: lint-imports
+  #       language: system
+  #       pass_filenames: false
+  #       always_run: true
+
+  # ── Dependency vulnerability scan (pip-audit) ───────────────────────────
+  - repo: local
+    hooks:
+      - id: pip-audit
+        name: pip-audit vulnerability check
+        entry: bash -c 'if [ -f requirements.txt ]; then pip-audit -r requirements.txt --desc 2>&1; fi'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+  # ── Tests ─────────────────────────────────────────────────────────────────
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: bash /Users/jeromelee/claude/scripts/pre-commit-pytest.sh
+        language: system
+        pass_filenames: false
+        always_run: true
