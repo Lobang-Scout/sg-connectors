@@ -28,4 +28,15 @@ workflow_stages:
 outcomes:
   - Two working stdio MCP servers, 21 passing tests, live-verified against real ACRA + OneMap data.
   - First connectors closing the "no connector for SG SME surfaces" gap from the eval.
+provides:
+  - name: sg-company-lookup
+    type: mcp-connector
+    path: src/sg_connectors
+    consume: uvx --from git+https://github.com/jersgcodes/sg-connectors sg-company-lookup
+    summary: Resolve SG UEN/company against ACRA open data (honest free-scope, test-guarded).
+  - name: sg-onemap
+    type: mcp-connector
+    path: src/sg_connectors
+    consume: uvx --from git+https://github.com/jersgcodes/sg-connectors sg-onemap
+    summary: SG postal-code/address lookup via OneMap (block, road, building, lat/long).
 last_updated: 2026-06-23
